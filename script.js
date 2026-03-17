@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createTrainEngine } from './engine.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
@@ -46,7 +47,7 @@ scene.add(station);
 function createTrain(){
     const trainGeometry = new THREE.BoxGeometry(10,5,5);
     const trainMaterial = new THREE.MeshStandardMaterial({color: 0xff8800});
-    const trainMesh = new THREE.Mesh(trainGeometry,trainMaterial);
+    const trainMesh =createTrainEngine();
     trainMesh.position.set(-50,2.5,0);
     scene.add(trainMesh);
     return {
@@ -154,9 +155,7 @@ function trySpawnTrain() {
     const track = availableTracks[Math.floor(Math.random() * availableTracks.length)];
     track.occupied = true; 
 
-    const trainGeometry = new THREE.BoxGeometry(10, 5, 5);
-    const trainMaterial = new THREE.MeshStandardMaterial({color: 0xff8800});
-    const trainMesh = new THREE.Mesh(trainGeometry, trainMaterial);
+    const trainMesh = createTrainEngine();
     trainMesh.position.set(-60, 2.5, track.z);
     scene.add(trainMesh);
     
