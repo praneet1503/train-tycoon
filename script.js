@@ -70,11 +70,14 @@ let goods = [
 let money = 0;
 
 
-window.addEventListener('keydown',(e)=>{
-    if(train.state !== "waiting") return;
-    if(e.key === '1'&& goods[0].qty>0){goods[0].qty--; money +=goods[0].value; train.loaded++;}
-    if(e.key === '2'&& goods[1].qty>0){goods[1].qty--; money +=goods[1].value; train.loaded++;}
-    if(e.key === '3'&& goods[2].qty>0){goods[2].qty--; money +=goods[2].value; train.loaded++;}
+window.addEventListener('keydown',(e) => {
+    // Find the first train that is waiting and has room
+    let t = trains.find(tr => tr.state === "waiting" && tr.loaded < tr.capacity);
+    if (!t) return; // No trains ready to load
+
+    if(e.key === '1' && goods[0].qty > 0) { goods[0].qty--; money += goods[0].value; t.loaded++; }
+    if(e.key === '2' && goods[1].qty > 0) { goods[1].qty--; money += goods[1].value; t.loaded++; }
+    if(e.key === '3' && goods[2].qty > 0) { goods[2].qty--; money += goods[2].value; t.loaded++; }
 });
 
 const overlay = document.createElement('div');
@@ -88,10 +91,21 @@ document.body.appendChild(overlay);
 
 function updateUI(){
     let depotText = goods.map((g,i)=>`${i+1}. ${g.name}: ${g.qty}`).join('<br>');
-    let trainText = train.state === "waiting" ? `Train to ${train.destination} | Capacity: ${train.capacity} | Time: ${Math.floor(train.timer/60)}s<br>Press 1/2/3 to load goods` : '';
-    overlay.innerHTML = `Money: $${money}<br>Depot:<br>${depotText}<br>${trainText}`;
+    let trainText=trains.map(t=>{
+        if(t.state === "waiting"){
+            return `Train to ${t.destination}| Load: ${t.loaded}/${t.capacity}|Time:${Math.floor(t.timer/60)}s`;
+        }
+        return '';
+    }).filter(t => t !== '').join('<br>');
+    if (trains.some(t => t.state === "waiting")){
+        trainText+=`<br>Press 1/2/3 to load goods`;
+    }
+    overlay.innerHTML = `Money: $${money}<br>Depot:<br>${depotText}<br><br>${trainText}`;
 }
-function showContractPopup(){
+function showContractPopup(currentTrain){
+    // If a popup is already active for this train, don't create another
+    if (currentTrain._contractPopup) return;
+
     const popup = document.createElement('div');
     popup.style.top = '50%';
     popup.style.position ='absolute';
@@ -103,22 +117,33 @@ function showContractPopup(){
     popup.style.textAlign='center';
     popup.style.color='white';
     popup.style.zIndex='100';
+    popup.style.pointerEvents = 'auto';
+
     popup.innerHTML=`
     <h2>contract</h2>
     <p>after signing this contract ,the train will act as your temporary carriage for other stations do you wish to accept it ?</p>
     <button id="refuseBtn" style="margin: 10px; padding: 5px 10px; cursor: pointer;">refuse $0</button>
     <button id="acceptBtn" style="margin: 10px; padding: 5px 10px; cursor: pointer;">accept$100</button>
 `;
-document.body.appendChild(popup);
-document.getElementById('refuseBtn').onclick=()=>{
-    popup.remove();
-    train.state = "leaving";
-};
-     document.getElementById('acceptBtn').onclick=()=>{
+
+    document.body.appendChild(popup);
+    currentTrain._contractPopup = popup;
+
+    const refuseBtn = popup.querySelector('#refuseBtn');
+    const acceptBtn = popup.querySelector('#acceptBtn');
+
+    refuseBtn.onclick = () => {
         popup.remove();
-        money -=100;
-        train.state = "waiting";
-     };
+        currentTrain._contractPopup = null;
+        currentTrain.state = "leaving";
+    };
+
+    acceptBtn.onclick = () => {
+        popup.remove();
+        currentTrain._contractPopup = null;
+        money -= 100;
+        currentTrain.state = "waiting";
+    };
 }
 
 
@@ -151,24 +176,35 @@ trySpawnTrain();
 
 function animate(){
     requestAnimationFrame(animate);
-    if(train.state === "arriving"){
-        if(train.mesh.position.x < 0){
-            train.mesh.position.x += train.speed;
-        } else {
-            train.state = "contract"; 
-            showContractPopup();     
+    for (let i = trains.length - 1; i >= 0; i--) {
+        const t = trains[i];
+        
+        if (t.state === "arriving") {
+            if (t.mesh.position.x < 0) {
+                t.mesh.position.x += t.speed;
+            } else {
+                t.state = "contract";
+                showContractPopup(t);
+            }
+        } else if (t.state === "waiting") {
+            t.timer--;
+            if (t.timer <= 0) {
+                t.state = "leaving";
+            }
+        } else if (t.state === "leaving") {
+            t.mesh.position.x += t.speed;
+            if (t.mesh.position.x > 100) {
+                if (t.loaded > 0) {
+                    money += 100;
+                }
+                t.track.occupied = false;
+                scene.remove(t.mesh);
+                trains.splice(i, 1);
+            }
         }
-    } else if (train.state === "waiting"){
-        train.timer--;
-        if(train.timer<=0){
-            train.state = "leaving";
-        }
-    } else if (train.state === "leaving"){
-        train.mesh.position.x +=train.speed;
-        if(train.mesh.position.x>100){
-            scene.remove(train.mesh);
-            train = createTrain();
-        }
+    }
+    if (Math.random()< 0.005){
+        trySpawnTrain();
     }
     updateUI();
     renderer.render(scene,camera);
