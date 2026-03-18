@@ -89,7 +89,6 @@ export function createTrainEngine(){
         engine.position.y =Math.sin(Date.now()*0.005)*0.05;
     };
 
-    // Make the engine sprite bigger (scale uniformly)
     engine.scale.set(2, 2, 2);
 
     return engine;
