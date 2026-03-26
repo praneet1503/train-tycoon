@@ -1,32 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Train Tycoon</title>
-<style>
-  body { margin:0; overflow:hidden; background:#111; font-family:Arial, sans-serif; color:white; }
-  canvas { display:block; }
-  #overlay {
-    position:absolute;
-    top:10px;
-    left:10px;
-    color:white;
-    font-size:16px;
-    line-height:1.4em;
-  }
-</style>
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.152.2/build/three.module.js"
+  <meta charset="UTF-8">
+  <title>Train Tycoon</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+  <style>
+    .route-builder {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 320px;
+      background: rgba(20, 25, 33, 0.9);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
+      padding: 12px;
+      z-index: 10020;
+      backdrop-filter: blur(4px);
     }
-  }
-</script>
+    .route-builder h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    .route-builder label {
+      display: block;
+      font-size: 12px;
+      margin: 8px 0 4px;
+      color: #d7e0ea;
+    }
+    .route-builder select,
+    .route-builder button {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 13px;
+    }
+    .route-builder select {
+      background: #fff;
+      color: #111;
+    }
+    .route-builder button {
+      margin-top: 8px;
+      background: #f6f8fa;
+      color: #111;
+      cursor: pointer;
+    }
+    .route-stats {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .route-stats p {
+      margin: 4px 0;
+    }
+    .route-status {
+      margin-top: 8px;
+      color: #ffe08a;
+      min-height: 18px;
+    }
+    .game-clock {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(20, 25, 33, 0.9);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      z-index: 10010;
+      backdrop-filter: blur(4px);
+    }
+    .game-clock-title {
+      margin: 0;
+      font-size: 11px;
+      color: #d7e0ea;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .game-clock-day {
+      margin: 2px 0 0;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .game-clock-note {
+      margin: 4px 0 0;
+      font-size: 11px;
+      color: #d7e0ea;
+    }
+    .money-value {
+      margin: 6px 0 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #9bff9b;
+      line-height: 1.1;
+    }
+    .income-popup-container {
+      position: absolute;
+      top: 90px;
+      left: 20px;
+      z-index: 10030;
+      pointer-events: none;
+    }
+    .income-popup {
+      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.68);
+      color: #9bff9b;
+      font-size: 14px;
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 240ms ease, transform 320ms ease;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+    .income-popup-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .income-popup-hide {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  </style>
 </head>
-<body>
-<div id="overlay"></div>
-<script type="module" src="script.js"></script>
 
+<body>
+  <div id="map" style="width: 100%;height: 100vh;"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+  <div id="routeBuilder" class="route-builder">
+    <h3>Route Buying</h3>
+    <label for="fromStation">From Station</label>
+    <select id="fromStation"></select>
+
+    <label for="toStation">To Station</label>
+    <select id="toStation"></select>
+
+    <button id="calculateRouteBtn">Calculate Route</button>
+    <button id="buildRouteBtn" disabled>Build Route</button>
+
+    <div class="route-stats">
+      <p>Distance: <strong id="routeDistance">--</strong></p>
+      <p>Cost: <strong id="routeCost">--</strong></p>
+      <p>Build Time: <strong id="routeTime">--</strong></p>
+      <p id="routeStatus" class="route-status"></p>
+    </div>
+  </div>
+  <div id="gameClock" class="game-clock">
+    <p class="game-clock-title">Game Day</p>
+    <p class="game-clock-day" id="gameDay">0</p>
+    <p class="game-clock-title" style="margin-top:8px;">Money</p>
+    <p class="money-value" id="playerMoney">$0</p>
+    <p class="game-clock-note">1 min = 1 day</p>
+  </div>
+  <div id="incomePopupContainer" class="income-popup-container"></div>
+  <script src="script.js"></script>
 </body>
 </html>

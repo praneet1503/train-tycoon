@@ -5,7 +5,8 @@
 
 export class Station {
   constructor() {
-    this.baseGenerationPerHour = 20;
+    // 10 passengers per minute = 6000 passengers per hour
+    this.baseGenerationPerHour = 10 * 600;
     this.maxCapacity = 200;
     this.passengers = 0;
 
