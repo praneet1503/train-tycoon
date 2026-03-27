@@ -1,0 +1,141 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body.app-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.panel-zone {
+  position: absolute;
+  z-index: 10020;
+}
+
+.dock-panel {
+  right: 20px;
+  bottom: 88px;
+  max-height: calc(100vh - 132px);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.98);
+  transition: opacity 150ms ease, transform 180ms ease, visibility 150ms ease;
+}
+
+.dock-panel-open {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.dock-panel-stats {
+  width: 320px;
+}
+
+.dock-panel-routes {
+  width: 340px;
+}
+
+.dock-panel-trains {
+  width: 380px;
+}
+
+.panel-dock {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 10060;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.income-popup-container {
+  position: absolute;
+  right: 20px;
+  bottom: 138px;
+  z-index: 10030;
+  pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+  .dock-panel-stats {
+    width: 300px;
+  }
+
+  .dock-panel-routes {
+    width: 320px;
+  }
+
+  .dock-panel-trains {
+    width: 340px;
+  }
+}
+
+@media (max-width: 860px) {
+  .dock-panel {
+    bottom: 78px;
+    right: 12px;
+    max-height: calc(100vh - 118px);
+  }
+
+  .dock-panel-stats,
+  .dock-panel-routes,
+  .dock-panel-trains {
+    width: min(380px, calc(100vw - 24px));
+  }
+
+  .panel-dock {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .income-popup-container {
+    right: 12px;
+    bottom: 126px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dock-panel {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: calc(100vh - 116px);
+  }
+
+  .dock-panel-stats,
+  .dock-panel-routes,
+  .dock-panel-trains {
+    width: auto;
+  }
+
+  .panel-dock {
+    right: 12px;
+    bottom: 12px;
+    left: auto;
+    align-items: flex-end;
+  }
+
+  .income-popup-container {
+    right: 12px;
+    left: auto;
+    bottom: 122px;
+  }
+}
